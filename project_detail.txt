@@ -1,0 +1,156 @@
+1. Project Overview
+
+  This project is a sophisticated, AI-powered web application designed to assist users with banking
+  regulations. It functions as a "Regulatory FAQ Assistant," capable of:
+
+
+   * Answering user questions about banking regulations in a conversational, ChatGPT-like interface.
+   * Processing new regulatory documents (in text or PDF format) to automatically generate relevant Frequently
+      Asked Questions (FAQs).
+   * Maintaining conversational context and managing chat history for a personalized user experience.
+   * Performing real-time web searches to answer questions about the latest regulatory changes.
+
+  The system is built around a multi-agent architecture where different AI agents collaborate to generate,
+  validate, and answer questions, ensuring the information is accurate and reliable.
+
+  2. Core Technologies
+
+
+   * Backend:
+       * FastAPI: A modern, high-performance Python web framework for building the API that powers the
+         application.
+       * Uvicorn: An ASGI server used to run the FastAPI application.
+   * Frontend:
+       * HTML5, CSS3, JavaScript: The standard trio for the web interface. The application is a single-page
+         application (SPA) with a modern, responsive design.
+       * Jinja2: A templating engine used by FastAPI to render the main index.html file.
+   * AI & Machine Learning:
+       * Azure OpenAI: The core AI provider for large language models (LLMs) like GPT-4o, used for generating
+         text, and for text embeddings.
+       * LangChain: A framework for developing applications powered by language models. It's used for creating
+          prompts, managing conversation history, and structuring interactions with the LLMs.
+       * AutoGen: A framework for building multi-agent systems. It orchestrates the collaboration between the
+         different AI agents (FAQ, Validation, and Query agents).
+       * Scikit-learn: Used for calculating cosine similarity in the in-memory vector store to find relevant
+         documents.
+   * Real-Time Search:
+       * DuckDuckGo Search (DDGS): A Python library to perform real-time web searches to fetch the latest
+         information.
+   * PDF Processing:
+       * PyPDF2 & pdfplumber: Python libraries used to extract text from uploaded PDF documents.
+
+  3. Application Flow
+
+  The application has two main workflows: answering user queries and processing new regulations.
+
+  A. Answering a User Query:
+
+
+   1. User Interface (UI): The user types a question into the chat input on the web page (index.html). The
+      JavaScript in chat.js captures this input.
+   2. API Request: The frontend sends a POST request to the /api/chat endpoint in the FastAPI backend (app.py).
+   3. FastAPI Backend: app.py receives the request and calls the answer_customer_query method in the
+      RegulatoryFAQSystem (main.py).
+   4. Query Agent: The QueryAgent (agents/query_agent.py) is activated. It:
+       * Determines if a real-time web search is needed (e.g., if the query contains "latest" or "recent").
+       * Searches the RegulatoryKnowledgeBase (utils/memory_storage.py) for relevant existing FAQs and
+         regulatory texts.
+       * Retrieves the recent conversation history to understand the context.
+       * Constructs a detailed prompt containing the user's query, context from the knowledge base,
+         conversation history, and real-time search results.
+       * Sends this prompt to the Azure OpenAI LLM to generate a comprehensive answer.
+       * Generates a few relevant follow-up questions.
+   5. Response to UI: The generated answer and suggestions are sent back to the UI, which then displays the
+      response in the chat window.
+
+  B. Processing a New Regulation:
+
+
+   1. User Interface (UI): An administrator clicks the "Process Regulation" button, which opens a modal. They
+      can either upload a PDF or paste regulatory text.
+   2. API Request: The frontend sends a POST request to the /api/process-regulation endpoint in app.py,
+      containing the PDF or text.
+   3. FastAPI Backend: app.py receives the data. If it's a PDF, it extracts the text. Then, it calls the
+      process_regulatory_update method in RegulatoryFAQSystem (main.py).
+   4. Multi-Agent System (Orchestrated by `main.py`):
+       * Step 1: FAQ Generation: The FAQAgent (agents/faq_agent.py) receives the regulatory text and generates
+          3-5 relevant FAQs in JSON format.
+       * Step 2: Validation: The ValidationAgent (agents/validation_agent.py) reviews the generated FAQs for
+         accuracy, clarity, and compliance, simulating feedback from legal and risk experts.
+       * Step 3: Storing Knowledge: The approved FAQs and the original regulatory text are stored in the
+         RegulatoryKnowledgeBase (utils/memory_storage.py).
+   5. Response to UI: A success message is sent back to the UI, confirming that the new regulation has been
+      processed.
+
+  4. Directory and File Structure
+
+
+   * app.py: The main FastAPI application file. It defines all the API endpoints, handles HTTP requests, and
+     serves the frontend.
+   * main.py: The core orchestration logic for the multi-agent system. It initializes the agents and the
+     knowledge base and defines the high-level workflows.
+   * requirements.txt: A list of all the Python libraries needed for the project.
+   * run.py, run_server.py, start.bat, start.sh: Scripts to run the application.
+   * .env: Stores environment variables, such as the Azure OpenAI API key.
+   * README.md: Provides a detailed overview of the project, architecture, and setup instructions.
+
+
+   * `agents/`: Contains the different AI agents.
+       * faq_agent.py: Responsible for generating FAQs from regulatory text.
+       * validation_agent.py: Validates the generated FAQs for accuracy and compliance.
+       * query_agent.py: Answers user questions, manages conversational memory, and performs real-time
+         searches.
+
+
+   * `config/`:
+       * azure_config.py: Loads and stores the configuration for Azure OpenAI from environment variables.
+
+
+   * `static/`: Contains the frontend assets.
+       * css/styles.css: The stylesheet for the application, defining the modern, responsive UI.
+       * js/chat.js: The JavaScript code that powers the frontend, handling user interactions, sending API
+         requests, and updating the chat display.
+
+   * `templates/`:
+       * index.html: The main HTML file for the single-page application.
+
+
+   * `utils/`:
+       * memory_storage.py: Implements the RegulatoryKnowledgeBase, which is an in-memory database for storing
+          FAQs and regulatory texts. It includes a simple vector store for semantic search.
+
+  5. Key Features in Detail
+
+
+   * Multi-Agent System: Instead of a single AI model, the system uses three specialized agents that work
+     together. This separation of concerns leads to higher quality results: the FAQAgent focuses on
+     generation, the ValidationAgent on quality control, and the QueryAgent on user interaction. main.py acts
+     as the orchestrator for this team of agents.
+   * Conversational Memory: The QueryAgent uses ConversationBufferWindowMemory from LangChain to remember the
+     last few turns of the conversation. This allows it to understand context (e.g., if a user asks "what
+     about for business accounts?" after a question about personal accounts) and provide more relevant,
+     human-like responses.
+   * Real-Time Search: The QueryAgent can identify when a user's question requires up-to-the-minute
+     information. In such cases, it uses the DDGS library to perform a web search and includes the search
+     results in the context provided to the LLM, ensuring the answers are not limited to its training data.
+
+  6. How to Run the Application
+
+
+   1. Install Dependencies:
+
+   1     pip install -r requirements.txt
+
+   2. Configure Azure OpenAI:
+       * Create a .env file in the root directory.
+       * Add your Azure OpenAI credentials to the .env file:
+
+   1         AZURE_OPENAI_API_KEY="your-api-key"
+   2         AZURE_OPENAI_ENDPOINT="your-endpoint"
+
+   3. Run the Application:
+
+   1     python app.py
+
+      Alternatively, you can use the provided run scripts (run.py, start.bat, or start.sh).
+   4. Access the Application: Open a web browser and navigate to http://localhost:8000.
