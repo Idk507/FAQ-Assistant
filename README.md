@@ -3,7 +3,7 @@
 ### Core System Architecture
 
 The Regulatory FAQ Assistant is a sophisticated AI-powered platform designed to streamline banking regulatory compliance communication. It combines multiple AI agents with an intuitive web interface to provide comprehensive regulatory guidance.
-
+ 
 ### Key Features Implemented
 
 #### 🤖 Multi-Agent AI System
